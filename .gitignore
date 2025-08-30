@@ -1,0 +1,25 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+.env
+
+# VSCode
+.vscode/
+
+# Data & outputs
+out/
+outputs/
+checkpoints/
+logs/
+
+# HF caches (optional ignore; caches can be large)
+.hf/
+.cache/
+
+# Datasets
+*.arrow
+
+# OS
+.DS_Store
