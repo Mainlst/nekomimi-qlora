@@ -1,5 +1,5 @@
 # 日本語README | [English README](README_en.md)
-# Maid-QLoRA 🐾✨
+# Nekomimi-QLoRA 🐾✨
 ネコ耳メイド口調LoRA – RTX 3070/4070/T4 で動く軽量QLoRA実装
 
 ![demo](screenshots/sample.png)
@@ -14,8 +14,8 @@ LoRA ファインチューニングで「優しいネコ耳メイド口調」を
 
 ## 🚀 セットアップ
 ```bash
-git clone https://github.com/yourname/maid-qlora-local.git
-cd maid-qlora-local
+git clone https://github.com/Mainlst/nekomimi-qlora.git
+cd nekomimi-qlora
 pip install -r requirements.txt
 ```
 
@@ -77,6 +77,6 @@ MIT License
 	author = {Your Name},
 	title = {Maid-QLoRA: ネコ耳メイド口調LoRA},
 	year = {2025},
-	url = {https://github.com/yourname/maid-qlora-local},
+	url = {https://github.com/yourname/nekomimi-qlora},
 }
 ```

@@ -1,50 +1,85 @@
-# nekomimi-qlora
 [English] | [日本語README](README.md)
+# Nekomimi-QLoRA 🐾✨
 
-A project for training and inference of a maid-style chatbot using QLoRA.
+Cat-Ear Maid Style LoRA – Lightweight QLoRA implementation running on RTX 3070/4070/T4
 
-## Features
-- Training and inference scripts for a maid-style chatbot
-- Example usage scripts
-- Data files for style adaptation
+![demo](screenshots/sample.png)
 
-## Getting Started
+---
 
-### Requirements
-Install the required Python packages:
+## ✨ Project Overview
+
+This repository is based on **Qwen2.5-1.5B-Instruct**,
+fine-tuned with LoRA to learn a “gentle cat-ear maid speaking style.”
+It demonstrates that character traits can be added even with a small dataset (around 100 examples).
+
+---
+
+## 🚀 Setup
 
 ```bash
+git clone https://github.com/Mainlst/nekomimi-qlora.git
+cd nekomimi-qlora
 pip install -r requirements.txt
 ```
 
-### Training
-To train the model, run:
+---
+
+## 🧪 Training
 
 ```bash
 python train_maid.py
 ```
 
-### Inference
-To run inference with the trained model:
+Output: `out/maid-qlora/adapter`
+
+---
+
+## 💬 Inference
 
 ```bash
 python chat_maid.py
 ```
 
-You can also use the example script:
+Example output:
 
-```bash
-python examples/infer_minimal.py
+```
+Master〜😊 Today’s first task is “3 minutes of desk cleaning, nya!”  
 ```
 
-## Data
-- `data/style_maid.jsonl` and `data/style_maid_100.jsonl`: Maid-style dialogue data for training and evaluation.
+---
 
-## Screenshots
-See the `screenshots/` directory for sample outputs and UI images.
+## 📂 Structure
 
-## License
-See `LICENSE` for details.
+* `train_maid.py` – Training script with QLoRA
+* `chat_maid.py` – Inference with the trained LoRA
+* `data/style_maid.jsonl` – Sample training data (15–100 examples)
+* `Dockerfile` – For reproducible environment setup
+* `requirements.txt` – List of required packages
+* `examples/infer_minimal.py` – Ultra-minimal inference example
 
-## Citation
-If you use this project, please cite it using the information in `CITATION.cff`.
+---
+
+## 🔮 Applications / Ideas
+
+* Other character-style LoRA (Butler, Kansai dialect, English version)
+* Integration into ChatBots or Discord Bots
+* NPC dialogue or personalized Game AI
+
+---
+
+## 📜 License
+
+MIT License
+
+---
+
+## 📖 Citation
+
+```bibtex
+@software{maid_qlora,
+	author = {Your Name},
+	title = {Maid-QLoRA: Cat-Ear Maid Style LoRA},
+	year = {2025},
+	url = {https://github.com/yourname/nekomimi-qlora},
+}
