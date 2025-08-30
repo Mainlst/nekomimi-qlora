@@ -1,0 +1,9 @@
+{
+  "train_runtime": null,
+  "train_samples_per_second": null,
+  "seed": 42,
+  "base_model": "Qwen/Qwen2.5-1.5B-Instruct",
+  "train_file": "data/style_maid.jsonl",
+  "output_dir": "experiments/2025-08-30-lora-qlora/out",
+  "timestamp": "2025-08-30T15:01:19.215434Z"
+}

@@ -1,6 +1,14 @@
-import torch, os, json, argparse
+import torch, os, json, argparse, logging, tarfile
 from datetime import datetime
 from pathlib import Path
+
+# Use non-interactive backend for headless environments
+try:
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+except Exception:
+    plt = None
 from datasets import load_dataset
 from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
 from peft import LoraConfig
@@ -9,12 +17,17 @@ from trl import SFTTrainer, SFTConfig
 def load_config(path: str | None):
     if not path:
         return None
-    import yaml
+    try:
+        import yaml
+    except Exception:
+        print("[warn] PyYAML not installed; ignoring --config and using defaults.")
+        return None
     with open(path, "r", encoding="utf-8") as f:
         return yaml.safe_load(f)
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--config", type=str, default=None, help="YAML config path")
+parser.add_argument("--dry-run", action="store_true", help="Do not download/train; just validate config and create placeholders")
 args = parser.parse_args()
 
 cfg = load_config(args.config) if args.config else {}
@@ -45,6 +58,26 @@ if not OUTPUT_DIR:
             OUTPUT_DIR = "out/maid-qlora"
     else:
         OUTPUT_DIR = "out/maid-qlora"
+
+# Determine experiment directory and prepare folders early (for logging)
+exp_dir = Path(args.config).parent if args.config else Path(OUTPUT_DIR)
+artifacts_dir = exp_dir / "artifacts"
+logs_dir = exp_dir / "logs"
+artifacts_dir.mkdir(parents=True, exist_ok=True)
+logs_dir.mkdir(parents=True, exist_ok=True)
+
+# Configure logging to both console and file
+log_file = logs_dir / "train.log"
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s %(levelname)s %(name)s: %(message)s",
+    handlers=[
+        logging.StreamHandler(),
+        logging.FileHandler(log_file, encoding="utf-8"),
+    ],
+)
+logger = logging.getLogger("train_maid")
+logger.info("Starting training with config: %s", args.config)
 
 # Ensure HF caches are writable inside workspace (no home writes required)
 HF_HOME = os.environ.get("HF_HOME", os.path.join(os.getcwd(), ".hf"))
@@ -102,7 +135,10 @@ lora_cfg = LoraConfig(
     task_type="CAUSAL_LM"
 )
 
-ds = load_dataset("json", data_files=TRAIN_FILE, split="train")
+if args.dry_run:
+    ds = None
+else:
+    ds = load_dataset("json", data_files=TRAIN_FILE, split="train")
 
 def formatting_func(example):
     msgs = example["messages"]
@@ -129,21 +165,26 @@ sft_cfg = SFTConfig(
     seed=int((cfg or {}).get("seed", 42)),
 )
 
-trainer = SFTTrainer(
-    model=model,
-    processing_class=tok,
-    peft_config=lora_cfg,
-    train_dataset=ds,
-    formatting_func=formatting_func,
-    args=sft_cfg,
-)
-
-train_result = trainer.train()
+if args.dry_run:
+    trainer = None
+    train_result = None
+else:
+    trainer = SFTTrainer(
+        model=model,
+        processing_class=tok,
+        peft_config=lora_cfg,
+        train_dataset=ds,
+        formatting_func=formatting_func,
+        args=sft_cfg,
+    )
+    train_result = trainer.train()
 
 save_dir = os.path.join(OUTPUT_DIR, "adapter")
-trainer.model.save_pretrained(save_dir)
-tok.save_pretrained(save_dir)
-print("Saved adapter to:", save_dir)
+os.makedirs(save_dir, exist_ok=True)
+if not args.dry_run and trainer is not None:
+    trainer.model.save_pretrained(save_dir)
+    tok.save_pretrained(save_dir)
+logger.info("Saved adapter to: %s", save_dir)
 
 # Save lightweight metrics
 metrics = {
@@ -156,12 +197,98 @@ metrics = {
     "timestamp": datetime.utcnow().isoformat() + "Z",
 }
 
-exp_dir = Path(args.config).parent if args.config else Path(OUTPUT_DIR)
-artifacts_dir = exp_dir / "artifacts"
-logs_dir = exp_dir / "logs"
-artifacts_dir.mkdir(parents=True, exist_ok=True)
-logs_dir.mkdir(parents=True, exist_ok=True)
-
 with open(exp_dir / "metrics.json", "w", encoding="utf-8") as f:
     json.dump(metrics, f, ensure_ascii=False, indent=2)
-print("Saved metrics to:", str(exp_dir / "metrics.json"))
+logger.info("Saved metrics to: %s", str(exp_dir / "metrics.json"))
+
+# Save log history to JSON/CSV and plot learning curve
+history = []
+if not args.dry_run and trainer is not None and getattr(trainer, "state", None):
+    history = trainer.state.log_history or []
+else:
+    # Minimal synthetic history for dry-run example
+    history = [
+        {"step": 0, "loss": 2.0},
+        {"step": 10, "loss": 1.8},
+        {"step": 20, "loss": 1.6},
+    ]
+
+with open(logs_dir / "history.json", "w", encoding="utf-8") as f:
+    json.dump(history, f, ensure_ascii=False, indent=2)
+
+# CSV for quick inspection
+try:
+    import csv
+    keys = sorted({k for row in history for k in row.keys()})
+    with open(logs_dir / "history.csv", "w", newline="", encoding="utf-8") as f:
+        w = csv.DictWriter(f, fieldnames=keys)
+        w.writeheader()
+        for row in history:
+            w.writerow(row)
+except Exception as e:
+    logger.warning("Failed to write history.csv: %s", e)
+
+# Plot learning curve if 'loss' present
+if plt is not None:
+    try:
+        steps = [h.get("step") for h in history if "loss" in h]
+        losses = [h.get("loss") for h in history if "loss" in h]
+        if steps and losses:
+            plt.figure(figsize=(6, 4))
+            plt.plot(steps, losses, marker="o")
+            plt.xlabel("step")
+            plt.ylabel("loss")
+            plt.title("Training Loss")
+            plt.grid(True, alpha=0.3)
+            plt.tight_layout()
+            plt.savefig(artifacts_dir / "learning_curve.png", dpi=150)
+            logger.info("Saved learning curve to: %s", str(artifacts_dir / "learning_curve.png"))
+    except Exception as e:
+        logger.warning("Failed to plot learning curve: %s", e)
+else:
+    logger.info("matplotlib not available; skipping learning_curve.png generation")
+
+# Archive adapter for convenient artifact snapshot
+try:
+    tar_path = artifacts_dir / "adapter.tar.gz"
+    with tarfile.open(tar_path, "w:gz") as tar:
+        tar.add(save_dir, arcname="adapter")
+    logger.info("Archived adapter to: %s", str(tar_path))
+except Exception as e:
+    logger.warning("Failed to create adapter archive: %s", e)
+
+# Persist resolved config snapshot
+try:
+    import yaml
+    resolved = {
+        "seed": (cfg or {}).get("seed", 42),
+        "dataset": {"path": TRAIN_FILE},
+        "model": {
+            "base": BASE_MODEL,
+            "lora": {
+                "r": lora_cfg.r,
+                "alpha": lora_cfg.lora_alpha,
+                "dropout": lora_cfg.lora_dropout,
+            },
+        },
+        "train": {
+            "epochs": sft_cfg.num_train_epochs,
+            "batch_size": sft_cfg.per_device_train_batch_size,
+            "grad_accum": sft_cfg.gradient_accumulation_steps,
+            "lr": sft_cfg.learning_rate,
+            "scheduler": str(sft_cfg.lr_scheduler_type),
+            "warmup_ratio": sft_cfg.warmup_ratio,
+            "max_length": sft_cfg.max_length,
+            "packing": sft_cfg.packing,
+        },
+        "runtime": {
+            "cuda": has_cuda,
+            "compute_dtype": str(compute_dtype),
+            "output_dir": OUTPUT_DIR,
+        },
+    }
+    with open(exp_dir / "config_resolved.yaml", "w", encoding="utf-8") as f:
+        yaml.safe_dump(resolved, f, allow_unicode=True, sort_keys=False)
+    logger.info("Saved resolved config snapshot.")
+except Exception as e:
+    logger.warning("Failed to save resolved config: %s", e)

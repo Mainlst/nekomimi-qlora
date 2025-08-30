@@ -54,12 +54,77 @@ python chat_maid.py
 * `requirements.txt` – 必要パッケージ一覧
 * `examples/infer_minimal.py` – 超ミニマルな推論サンプル
 
-### 実験運用（ショート）
+---
+
+## 実験運用ガイド 🧪
+
+このリポジトリは「実験や検証を続ける“育つレポジトリ”」を目指し、テンプレとスクリプトで反復を支援します。
+
+### 1) 実験の始め方（テンプレから作成）
+
+```bash
+bash scripts/new_exp.sh lora-qlora
+# => experiments/YYYY-MM-DD-lora-qlora/ が生成されます
+```
+
+- 編集ポイント:
+  - `experiments/<日付>-<短名>/config.yaml`（データパスや学習ハイパラ）
+  - `experiments/<日付>-<短名>/notes.md`（目的/仮説/セットアップ/学び）
+
+### 2) 実行方法（本番/ドライラン）
+
+- 本番実行（学習を実行）
+```bash
+bash scripts/run_exp.sh experiments/YYYY-MM-DD-lora-qlora/config.yaml
+```
+
+- 軽量テスト（--dry-run: 重い処理スキップ、成果物の雛形のみ生成）
+```bash
+bash scripts/run_exp.sh experiments/YYYY-MM-DD-lora-qlora/config.yaml --dry-run
+```
+
+引数はそのまま `train_maid.py` に渡されます（例: `--dry-run`）。
+
+### 3) 成果物の場所（自動出力）
+
+各実験フォルダ内に以下を自動保存します。
+
+- ルート
+  - `metrics.json`: 主要メトリクスの要約
+  - `config_resolved.yaml`: 実行時点の解決済み設定（再現用）
+- `artifacts/`
+  - `learning_curve.png`: 学習曲線（matplotlib 未導入ならスキップ）
+  - `adapter.tar.gz`: 学習済みアダプタ（`out/adapter/` のスナップショット）
+- `logs/`
+  - `train.log`: 進行ログ
+  - `history.json`, `history.csv`: ログ履歴（ステップ毎の loss 等）
+
+学習済みアダプタは通常 `experiments/<日付>-<短名>/out/adapter/` に保存されます。
+
+### 4) Windows（PowerShell）
+
+```powershell
+./scripts/run_exp.ps1 -Config "experiments/2025-08-30-lora-qlora/config.yaml"
+```
+
+### 5) 開発の足場（任意）
+
+- プリコミット
+  - 設定: `.pre-commit-config.yaml`
+  - 有効化:
+    ```bash
+    pip install pre-commit
+    pre-commit install
+    ```
+- 最小CI（GitHub Actions）
+  - ワークフロー: `.github/workflows/ci.yml`
+  - 目的: 依存インストールとスタイルチェックのスモーク
+
+### 6) 運用ルール（推奨）
 
 - ブランチ: `main`（安定）, `exp/<日付>-<短名>`, `feat/<目的>`, `fix/<内容>`
-- 使い方: `experiments/_template/` をコピーして `experiments/<日付>-<短名>/` を作成
-- 実行: `bash scripts/run_exp.sh experiments/<日付>-<短名>/config.yaml`
-- 保存: 各実験フォルダに `metrics.json`, `artifacts/`, `logs/` を出力
+- コミット例: `exp: run qlora on 3e-4 with cosine schedule`
+- 節目はタグ/Release、`CHANGELOG.md`更新
 
 ---
 

@@ -39,6 +39,14 @@ Output: `out/maid-qlora/adapter`
 
 ```bash
 python chat_maid.py
+```bibtex
+@software{maid_qlora,
+	author = {Your Name},
+	title = {Maid-QLoRA: Cat-Ear Maid Style LoRA},
+	year = {2025},
+	url = {https://github.com/yourname/nekomimi-qlora},
+}
+```
 ```
 
 Example output:

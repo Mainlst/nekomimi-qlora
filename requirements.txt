@@ -9,3 +9,4 @@ trl>=0.9.6
 sentencepiece
 protobuf
 pre-commit
+matplotlib
