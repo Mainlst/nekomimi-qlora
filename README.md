@@ -12,102 +12,114 @@ LoRA ファインチューニングで「優しいネコ耳メイド口調」を
 
 ---
 
-## 🚀 セットアップ
+## 🚀 セットアップ（lora-local 環境・mamba/micromamba 推奨）
+
+1) 取得
 ```bash
 git clone https://github.com/Mainlst/nekomimi-qlora.git
 cd nekomimi-qlora
-pip install -r requirements.txt
+```
+
+2) 環境作成（micromamba/mamba → conda → venv の順で自動）
+```bash
+bash scripts/setup_env.sh
+```
+
+手動の例（micromambaがある場合）
+```bash
+micromamba create -n lora-local -f environment.yml -y
+micromamba run -n lora-local python -m pip install --index-url https://download.pytorch.org/whl/cu121 torch torchvision --upgrade  # 任意
+```
+
+venv を使う場合（最小）
+```bash
+python -m venv .venv-lora-local
+source .venv-lora-local/bin/activate
+python -m pip install -r requirements.txt
 ```
 
 ---
 
-## 🧪 学習
+## 🧪 学習（8GB安全ラインとドライラン）
 
+最小構成（8GB想定）:
 ```bash
-python train_maid.py
+# ドライラン（重いDL/学習をスキップ、成果物の雛形を出力）
+bash scripts/train.sh configs/maid_1p5b_stable.yaml --dry-run
+
+# 実学習
+bash scripts/train.sh configs/maid_1p5b_stable.yaml
 ```
 
-出力: `out/maid-qlora/adapter`
+ポイント
+- 設定は `configs/*.yaml` で管理（例: `maid_1p5b_stable.yaml`/`maid_1p5b_std.yaml`/`maid_3b_edge.yaml`）
+- `train_maid.py --config <yaml>` で読み込み（seq→max_length、LoRA r/alpha/dropout、target_modules も反映）
+- 既定のアダプタ保存先: `out/maid-qlora/adapter`
+- ログ/メトリクス/図は「configファイルのあるディレクトリ直下」に保存（例: `configs/metrics.json`, `configs/artifacts/learning_curve.png` など）
 
 ---
 
-## 💬 推論
+## 💬 推論（プリセット mild/sweet/ultra）
 
+プリセット付きの簡易CLI:
 ```bash
-python chat_maid.py
+# sweet プリセットでプロンプトを実行
+bash scripts/infer.sh "明日の朝やるべきことを3つだけ教えて" sweet
+
+# 直接指定（任意でベース/アダプタの切替も可能）
+micromamba run -n lora-local python -u chat_maid.py \
+  --prompt "短い応援を一言" --preset mild \
+  --base Qwen/Qwen2.5-1.5B-Instruct \
+  --adapter out/maid-qlora/adapter
 ```
 
-出力例:
-
-```
-ご主人様〜😊 今日の最初の一手は“机を拭く3分”ですにゃん！
-```
+プリセット定義: `presets/infer.json`
+- mild: temperature=0.6, top_p=0.9, repetition_penalty=1.05
+- sweet: 0.7, 0.9, 1.05
+- ultra: 0.8, 0.92, 1.1（暴走注意）
 
 ---
 
-## 📂 構成
+## 📂 構成（主要）
 
-* `train_maid.py` – QLoRA での学習スクリプト
-* `chat_maid.py` – 学習済み LoRA を載せた推論
-* `data/style_maid.jsonl` – サンプル学習データ（15〜100例）
-* `Dockerfile` – 再現性の高い環境構築用
-* `requirements.txt` – 必要パッケージ一覧
-* `examples/infer_minimal.py` – 超ミニマルな推論サンプル
+- `configs/` … 学習設定（8GB最小/推奨/3Bエッジ）
+- `presets/infer.json` … 推論プリセット mild/sweet/ultra
+- `scripts/` … 環境準備・学習/推論のヘルパ
+  - `setup_env.sh` … lora-local 環境を micromamba/mamba/conda/venv の順で構築
+  - `train.sh` / `infer.sh`
+- `data/`
+  - `style_maid_100.jsonl` … サンプルSFTデータ
+  - `make_style_maid_200.py` … 100→200件へ拡張（[STYLE=maid] 前置、カテゴリ均等化）
+  - `validate.py` … JSONL検証（件数/重複率/平均長さ）
+- `eval/prompts_100.txt` … 評価用固定プロンプト（雛形）
+- `Makefile` … `make setup/train/infer/validate/data200`
+- `results/metrics/` / `reports/` / `assets/screenshots/` … 成果物の置き場
+- `train_maid.py` … QLoRA学習（--config対応、dry-run対応）
+- `chat_maid.py` … LoRA推論（--preset/--prompt 対応）
+- `examples/infer_minimal.py` … 最小推論サンプル
 
 ---
 
-## 実験運用ガイド 🧪
+## 実験運用ガイド 🧪（簡易）
 
-このリポジトリは「実験や検証を続ける“育つレポジトリ”」を目指し、テンプレとスクリプトで反復を支援します。
+推奨ブランチ運用
+- `main`（安定） / `exp/*`（実験） / `demo/*`（作品）
 
-### 1) 実験の始め方（テンプレから作成）
+成果物の置き場
+- `reports/`（表・所感）
+- `results/metrics/`（JSONログ）
+- `assets/screenshots/`（UIや比較のスクショ）
 
-```bash
-bash scripts/new_exp.sh lora-qlora
-# => experiments/YYYY-MM-DD-lora-qlora/ が生成されます
-```
+補足（旧ワークフロー）
+- `scripts/new_exp.sh` と `scripts/run_exp.sh` も併用可能です（experiments/配下に雛形生成）。
 
-- 編集ポイント:
-  - `experiments/<日付>-<短名>/config.yaml`（データパスや学習ハイパラ）
-  - `experiments/<日付>-<短名>/notes.md`（目的/仮説/セットアップ/学び）
-
-### 2) 実行方法（本番/ドライラン）
-
-- 本番実行（学習を実行）
-```bash
-bash scripts/run_exp.sh experiments/YYYY-MM-DD-lora-qlora/config.yaml
-```
-
-- 軽量テスト（--dry-run: 重い処理スキップ、成果物の雛形のみ生成）
-```bash
-bash scripts/run_exp.sh experiments/YYYY-MM-DD-lora-qlora/config.yaml --dry-run
-```
-
-引数はそのまま `train_maid.py` に渡されます（例: `--dry-run`）。
-
-### 3) 成果物の場所（自動出力）
-
-各実験フォルダ内に以下を自動保存します。
-
-- ルート
-  - `metrics.json`: 主要メトリクスの要約
-  - `config_resolved.yaml`: 実行時点の解決済み設定（再現用）
-- `artifacts/`
-  - `learning_curve.png`: 学習曲線（matplotlib 未導入ならスキップ）
-  - `adapter.tar.gz`: 学習済みアダプタ（`out/adapter/` のスナップショット）
-- `logs/`
-  - `train.log`: 進行ログ
-  - `history.json`, `history.csv`: ログ履歴（ステップ毎の loss 等）
-
-学習済みアダプタは通常 `experiments/<日付>-<短名>/out/adapter/` に保存されます。
-
-### 4) Windows（PowerShell）
+### Windows（PowerShell）
 
 ```powershell
 ./scripts/run_exp.ps1 -Config "experiments/2025-08-30-lora-qlora/config.yaml"
 ```
 
-### 5) 開発の足場（任意）
+### 開発の足場（任意）
 
 - プリコミット
   - 設定: `.pre-commit-config.yaml`
@@ -120,9 +132,9 @@ bash scripts/run_exp.sh experiments/YYYY-MM-DD-lora-qlora/config.yaml --dry-run
   - ワークフロー: `.github/workflows/ci.yml`
   - 目的: 依存インストールとスタイルチェックのスモーク
 
-### 6) 運用ルール（推奨）
+### 運用ルール（推奨）
 
-- ブランチ: `main`（安定）, `exp/<日付>-<短名>`, `feat/<目的>`, `fix/<内容>`
+- ブランチ: `main`（安定）, `exp/<日付>-<短名>`, `demo/<名前>`, `feat/<目的>`, `fix/<内容>`
 - コミット例: `exp: run qlora on 3e-4 with cosine schedule`
 - 節目はタグ/Release、`CHANGELOG.md`更新
 

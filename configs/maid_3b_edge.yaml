@@ -1,0 +1,26 @@
+seed: 42
+
+model:
+  base: Qwen/Qwen2.5-3B-Instruct
+  lora:
+    r: 8
+    alpha: 16
+    dropout: 0.1
+    target_modules: [q_proj, v_proj, o_proj]
+
+train:
+  # 8GBでギリギリを狙う実験設定
+  seq: 256
+  batch_size: 1
+  grad_accum: 20
+  lr: 1.0e-4
+  scheduler: cosine
+  warmup_ratio: 0.03
+  epochs: 1
+  packing: true
+  logging_steps: 10
+  save_steps: 300
+  save_total_limit: 2
+
+dataset:
+  path: data/style_maid.jsonl
