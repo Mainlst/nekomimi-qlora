@@ -58,6 +58,13 @@ Master〜😊 Today’s first task is “3 minutes of desk cleaning, nya!”
 * `requirements.txt` – List of required packages
 * `examples/infer_minimal.py` – Ultra-minimal inference example
 
+### 🔁 Experiments lifecycle (quick)
+
+- Branches: `main` (stable), `exp/<date>-<short>`, `feat/<goal>`, `fix/<what>`
+- Template: copy `experiments/_template/` to `experiments/2025-08-30-lora-qlora/`
+- Run: `bash scripts/run_exp.sh experiments/2025-08-30-lora-qlora/config.yaml`
+- Save: results are stored under the experiment folder (`metrics.json`, `artifacts/`, `logs/`)
+
 ---
 
 ## 🔮 Applications / Ideas

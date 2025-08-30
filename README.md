@@ -54,6 +54,13 @@ python chat_maid.py
 * `requirements.txt` – 必要パッケージ一覧
 * `examples/infer_minimal.py` – 超ミニマルな推論サンプル
 
+### 実験運用（ショート）
+
+- ブランチ: `main`（安定）, `exp/<日付>-<短名>`, `feat/<目的>`, `fix/<内容>`
+- 使い方: `experiments/_template/` をコピーして `experiments/<日付>-<短名>/` を作成
+- 実行: `bash scripts/run_exp.sh experiments/<日付>-<短名>/config.yaml`
+- 保存: 各実験フォルダに `metrics.json`, `artifacts/`, `logs/` を出力
+
 ---
 
 ## 🔮 応用アイデア

@@ -13,6 +13,8 @@ out/
 outputs/
 checkpoints/
 logs/
+artifacts/
+wandb/
 
 # HF caches (optional ignore; caches can be large)
 .hf/
