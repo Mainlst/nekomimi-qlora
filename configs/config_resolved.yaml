@@ -1,0 +1,22 @@
+seed: 42
+dataset:
+  path: data/style_maid.jsonl
+model:
+  base: Qwen/Qwen2.5-1.5B-Instruct
+  lora:
+    r: 8
+    alpha: 16
+    dropout: 0.1
+train:
+  epochs: 1
+  batch_size: 1
+  grad_accum: 16
+  lr: 0.0001
+  scheduler: SchedulerType.COSINE
+  warmup_ratio: 0.03
+  max_length: 256
+  packing: true
+runtime:
+  cuda: true
+  compute_dtype: torch.bfloat16
+  output_dir: out/maid-qlora

@@ -5,7 +5,6 @@ channels:
 dependencies:
   - python=3.11
   - pip>=24.0
-  - cudatoolkit=12.1  # optional; if using CUDA runtime from conda
   - pip:
       - torch
       - torchvision
