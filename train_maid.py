@@ -99,7 +99,7 @@ compute_dtype = (
 
 # Use 4-bit only when CUDA is available; fall back to full-precision on CPU
 bnb_config = None
-if has_cuda:
+if has_cuda and not args.dry_run:
     bnb_config = BitsAndBytesConfig(
         load_in_4bit=True,
         bnb_4bit_use_double_quant=True,
@@ -107,31 +107,38 @@ if has_cuda:
         bnb_4bit_compute_dtype=compute_dtype,
     )
 
-tok = AutoTokenizer.from_pretrained(BASE_MODEL, use_fast=True)
-if tok.pad_token is None:
-    tok.pad_token = tok.eos_token
+tok = None
+model = None
+if not args.dry_run:
+    tok = AutoTokenizer.from_pretrained(BASE_MODEL, use_fast=True)
+    if tok.pad_token is None:
+        tok.pad_token = tok.eos_token
 
-if has_cuda:
-    model = AutoModelForCausalLM.from_pretrained(
-        BASE_MODEL,
-        quantization_config=bnb_config,
-        device_map="auto",
-    )
-    model.gradient_checkpointing_enable()
-else:
-    model = AutoModelForCausalLM.from_pretrained(
-        BASE_MODEL,
-        torch_dtype=torch.float32,
-        low_cpu_mem_usage=True,
-        device_map={"": "cpu"},
-    )
+    if has_cuda:
+        model = AutoModelForCausalLM.from_pretrained(
+            BASE_MODEL,
+            quantization_config=bnb_config,
+            device_map="auto",
+        )
+        model.gradient_checkpointing_enable()
+    else:
+        model = AutoModelForCausalLM.from_pretrained(
+            BASE_MODEL,
+            torch_dtype=torch.float32,
+            low_cpu_mem_usage=True,
+            device_map={"": "cpu"},
+        )
 
 lorac = (cfg.get("model", {}) or {}).get("lora", {}) if cfg else {}
+target_modules = lorac.get("target_modules") if isinstance(lorac, dict) else None
+if not target_modules:
+    target_modules = ["q_proj","k_proj","v_proj","o_proj","gate_proj","up_proj","down_proj"]
+
 lora_cfg = LoraConfig(
     r=int(lorac.get("r", 32)),
     lora_alpha=int(lorac.get("alpha", 64)),
     lora_dropout=float(lorac.get("dropout", 0.05)),
-    target_modules=["q_proj","k_proj","v_proj","o_proj","gate_proj","up_proj","down_proj"],
+    target_modules=target_modules,
     task_type="CAUSAL_LM"
 )
 
@@ -159,7 +166,7 @@ sft_cfg = SFTConfig(
     save_total_limit=int(trainc.get("save_total_limit", 2)),
     bf16=(has_cuda and compute_dtype==torch.bfloat16),
     fp16=(has_cuda and compute_dtype==torch.float16),
-    max_length=int(trainc.get("max_length", 384)),
+    max_length=int(trainc.get("max_length", trainc.get("seq", 384))),
     packing=bool(trainc.get("packing", True)),
     gradient_checkpointing=True,
     seed=int((cfg or {}).get("seed", 42)),
