@@ -1,3 +1,4 @@
+# 日本語README | [English README](README_en.md)
 # Maid-QLoRA 🐾✨
 ネコ耳メイド口調LoRA – RTX 3070/4070/T4 で動く軽量QLoRA実装
 
