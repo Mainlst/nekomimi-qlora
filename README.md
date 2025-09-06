@@ -12,7 +12,7 @@ LoRA ファインチューニングで「優しいネコ耳メイド口調」を
 
 ---
 
-## 🚀 セットアップ（lora-local 環境・mamba/micromamba 推奨）
+## 🚀 セットアップ（neko-lora 環境・mamba/micromamba 推奨）
 
 1) 取得
 ```bash
@@ -27,14 +27,14 @@ bash scripts/setup_env.sh
 
 手動の例（micromambaがある場合）
 ```bash
-micromamba create -n lora-local -f environment.yml -y
-micromamba run -n lora-local python -m pip install --index-url https://download.pytorch.org/whl/cu121 torch torchvision --upgrade  # 任意
+micromamba create -n neko-lora -f environment.yml -y
+micromamba run -n neko-lora python -m pip install --index-url https://download.pytorch.org/whl/cu121 torch torchvision --upgrade  # 任意
 ```
 
 venv を使う場合（最小）
 ```bash
-python -m venv .venv-lora-local
-source .venv-lora-local/bin/activate
+python -m venv .venv-neko-lora
+source .venv-neko-lora/bin/activate
 python -m pip install -r requirements.txt
 ```
 
@@ -67,7 +67,7 @@ bash scripts/train.sh configs/maid_1p5b_stable.yaml
 bash scripts/infer.sh "明日の朝やるべきことを3つだけ教えて" sweet
 
 # 直接指定（任意でベース/アダプタの切替も可能）
-micromamba run -n lora-local python -u chat_maid.py \
+micromamba run -n neko-lora python -u chat_maid.py \
   --prompt "短い応援を一言" --preset mild \
   --base Qwen/Qwen2.5-1.5B-Instruct \
   --adapter out/maid-qlora/adapter
@@ -85,7 +85,7 @@ micromamba run -n lora-local python -u chat_maid.py \
 - `configs/` … 学習設定（8GB最小/推奨/3Bエッジ）
 - `presets/infer.json` … 推論プリセット mild/sweet/ultra
 - `scripts/` … 環境準備・学習/推論のヘルパ
-  - `setup_env.sh` … lora-local 環境を micromamba/mamba/conda/venv の順で構築
+  - `setup_env.sh` … neko-lora 環境を micromamba/mamba/conda/venv の順で構築
   - `train.sh` / `infer.sh`
 - `data/`
   - `style_maid_100.jsonl` … サンプルSFTデータ
