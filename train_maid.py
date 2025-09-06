@@ -9,7 +9,7 @@ try:
     import matplotlib.pyplot as plt
 except Exception:
     plt = None
-from datasets import load_dataset
+from datasets import load_dataset, Dataset
 from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
 from peft import LoraConfig
 from trl import SFTTrainer, SFTConfig
@@ -142,10 +142,40 @@ lora_cfg = LoraConfig(
     task_type="CAUSAL_LM"
 )
 
+def load_training_dataset(path: str):
+    """Load dataset from JSONL (line-delimited) or JSON array.
+    Falls back to manual parsing for array files.
+    """
+    try:
+        # Peek first non-space chars to detect array JSON
+        with open(path, "r", encoding="utf-8") as f:
+            head = f.read(2048).lstrip()
+        if head.startswith("["):
+            with open(path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            if not isinstance(data, list):
+                raise ValueError("Top-level JSON is not a list")
+            return Dataset.from_list(data)
+        # else: likely JSONL; delegate to HF loader
+        return load_dataset("json", data_files=path, split="train")
+    except Exception as e:
+        # Last resort: try to read as JSONL manually
+        try:
+            rows = []
+            with open(path, "r", encoding="utf-8") as f:
+                for line in f:
+                    line = line.strip()
+                    if not line:
+                        continue
+                    rows.append(json.loads(line))
+            return Dataset.from_list(rows)
+        except Exception as e2:
+            raise RuntimeError(f"Failed to load dataset from {path}: {e} / {e2}")
+
 if args.dry_run:
     ds = None
 else:
-    ds = load_dataset("json", data_files=TRAIN_FILE, split="train")
+    ds = load_training_dataset(TRAIN_FILE)
 
 def formatting_func(example):
     msgs = example["messages"]

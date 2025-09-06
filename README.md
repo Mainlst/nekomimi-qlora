@@ -90,7 +90,7 @@ micromamba run -n neko-lora python -u chat_maid.py \
 - `data/`
   - `style_maid_100.jsonl` … サンプルSFTデータ
   - `make_style_maid_200.py` … 100→200件へ拡張（[STYLE=maid] 前置、カテゴリ均等化）
-  - `validate.py` … JSONL検証（件数/重複率/平均長さ）
+  - `validate.py` … データ検証（JSONL/JSON配列 両対応：件数/重複率/平均長さ）
 - `eval/prompts_100.txt` … 評価用固定プロンプト（雛形）
 - `Makefile` … `make setup/train/infer/validate/data200`
 - `results/metrics/` / `reports/` / `assets/screenshots/` … 成果物の置き場

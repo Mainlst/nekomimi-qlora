@@ -30,9 +30,16 @@ def guess_category(text: str) -> str:
 
 
 def build(src: Path, dst: Path):
+    # Load either JSONL or JSON array
+    src_text = src.read_text(encoding='utf-8').lstrip()
     rows = []
-    with src.open('r', encoding='utf-8') as f:
-        for line in f:
+    if src_text.startswith('['):
+        data = json.loads(src_text)
+        if not isinstance(data, list):
+            raise ValueError('Top-level JSON must be an array')
+        rows = data
+    else:
+        for line in src_text.splitlines():
             if not line.strip():
                 continue
             rows.append(json.loads(line))
