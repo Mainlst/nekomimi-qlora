@@ -15,7 +15,7 @@ It demonstrates that character traits can be added even with a small dataset (ar
 
 ---
 
-## 🚀 Setup (lora-local env; prefer mamba/micromamba)
+## 🚀 Setup (neko-lora env; prefer mamba/micromamba)
 
 1) Clone
 ```bash
@@ -30,14 +30,14 @@ bash scripts/setup_env.sh
 
 Manual example (micromamba)
 ```bash
-micromamba create -n lora-local -f environment.yml -y
-micromamba run -n lora-local python -m pip install --index-url https://download.pytorch.org/whl/cu121 torch torchvision --upgrade  # optional
+micromamba create -n neko-lora -f environment.yml -y
+micromamba run -n neko-lora python -m pip install --index-url https://download.pytorch.org/whl/cu121 torch torchvision --upgrade  # optional
 ```
 
 Using venv (minimal)
 ```bash
-python -m venv .venv-lora-local
-source .venv-lora-local/bin/activate
+python -m venv .venv-neko-lora
+source .venv-neko-lora/bin/activate
 python -m pip install -r requirements.txt
 ```
 
@@ -70,7 +70,7 @@ Simple CLI with presets:
 bash scripts/infer.sh "Give me three small morning tasks" sweet
 
 # Direct (optionally switch base/adapter)
-micromamba run -n lora-local python -u chat_maid.py \
+micromamba run -n neko-lora python -u chat_maid.py \
 	--prompt "A one-line encouragement" --preset mild \
 	--base Qwen/Qwen2.5-1.5B-Instruct \
 	--adapter out/maid-qlora/adapter
@@ -88,7 +88,7 @@ Preset definitions: `presets/infer.json`
 - `configs/` … training configs (8GB minimal/standard, 3B edge)
 - `presets/infer.json` … inference presets mild/sweet/ultra
 - `scripts/` … helpers for env/training/inference
-	- `setup_env.sh` … builds lora-local env (micromamba/mamba/conda/venv)
+	- `setup_env.sh` … builds neko-lora env (micromamba/mamba/conda/venv)
 	- `train.sh` / `infer.sh`
 - `data/`
 	- `style_maid_100.jsonl` … sample SFT data
